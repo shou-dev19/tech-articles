@@ -41,7 +41,21 @@ if [ -z "$(git config --global user.name)" ]; then
 fi
 
 # ---------------------------------------------------------
-# 3. CLI ツールのインストール
+# 3. Git サブモジュールの初期化
+# ---------------------------------------------------------
+echo "Initializing git submodules..."
+git -C /workspaces/tech-articles submodule update --init --recursive
+
+# 親を push するとき、未 push のサブモジュールコミットも一緒に push する。
+# これがないと「親だけ push → 参照先コミットが誰も取得できない」状態になる。
+git -C /workspaces/tech-articles config --local push.recurseSubmodules on-demand
+git -C /workspaces/tech-articles config --local fetch.recurseSubmodules on-demand
+# git status / git diff にサブモジュールの変更を表示させる
+git -C /workspaces/tech-articles config --local status.submoduleSummary true
+git -C /workspaces/tech-articles config --local diff.submodule log
+
+# ---------------------------------------------------------
+# 4. CLI ツールのインストール
 # ---------------------------------------------------------
 echo "Installing Antigravity CLI..."
 curl -fsSL https://antigravity.google/cli/install.sh | bash
@@ -61,7 +75,7 @@ else
 fi
 
 # ---------------------------------------------------------
-# 4. シェルエイリアスの設定
+# 5. シェルエイリアスの設定
 # ---------------------------------------------------------
 echo "alias agyyolo='agy --dangerously-skip-permissions'" >> /home/node/.bashrc
 source ~/.bashrc

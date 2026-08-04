@@ -1,0 +1,4 @@
+[submodule "qiita-cli"]
+	path = qiita-cli
+	url = https://github.com/shou-dev19/qiita-cli.git
+	branch = main

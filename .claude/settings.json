@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-submodule-sync.sh",
+            "timeout": 15,
+            "statusMessage": "サブモジュールの同期状態を確認中..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-submodule-sync.sh --always",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
