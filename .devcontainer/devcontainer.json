@@ -1,0 +1,64 @@
+{
+  "name": "AI Agent Workspace (Node.js/TS)",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm",
+  // 認証情報を含む設定ファイル (.claude.json) をボリューム内に置き、リビルド後も認証を維持する
+  "containerEnv": {
+    "CLAUDE_CONFIG_DIR": "/home/node/.claude"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+  },
+  "mounts": [
+    {
+      "source": "ai-dev-claude-config",
+      "target": "/home/node/.claude",
+      "type": "volume"
+    },
+    {
+      "source": "ai-dev-gemini-config",
+      "target": "/home/node/.gemini",
+      "type": "volume"
+    },
+    {
+      "source": "ai-dev-codex-config",
+      "target": "/home/node/.codex",
+      "type": "volume"
+    },
+    {
+      "source": "ai-dev-gh-config",
+      "target": "/home/node/.config/gh",
+      "type": "volume"
+    },
+    {
+      "source": "ai-dev-gcloud-config",
+      "target": "/home/node/.config/gcloud",
+      "type": "volume"
+    }
+  ],
+  // Docker起動時に .env ファイルを読み込ませる設定（.envが存在しない場合があるためデフォルトはコメントアウト）
+  // "runArgs": [
+  //   "--env-file",
+  //   ".env"
+  // ],
+  "customizations": {
+    "vscode": {
+      // コンテナ起動時に自動で入れたいVS Code拡張機能
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "mechatroner.rainbow-csv"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  // コンテナユーザーをnode(非root)に設定
+  "remoteUser": "node",
+  // コンテナ作成後に実行されるコマンド
+  // ここでClaudeCodeやAntigravityCLIをグローバルインストールします
+  "postCreateCommand": "bash .devcontainer/setup.sh"
+}
