@@ -9,6 +9,12 @@
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-submodule-sync.sh",
             "timeout": 15,
             "statusMessage": "サブモジュールの同期状態を確認中..."
+          },
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-note-staleness.sh",
+            "timeout": 15,
+            "statusMessage": "note 記事と転載元の同期状態を確認中..."
           }
         ]
       }
@@ -19,6 +25,11 @@
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-submodule-sync.sh --always",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/check-note-staleness.sh --always",
             "timeout": 15
           }
         ]
