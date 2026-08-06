@@ -51,7 +51,7 @@ hashtags: [AI駆動開発, ClaudeCode]
 | `note_url` | 公開後 | note が採番した URL。公開するまでは空 |
 | `published_at` | 公開後 | 公開日 |
 | `status` | ○ | `draft` / `published` |
-| `hashtags` | | note のハッシュタグ |
+| `hashtags` | | note のハッシュタグ。**8〜10個が適正**（Qiita の `tags` とはキー名も上限も別） |
 
 ### `source_updated_at` が肝
 
@@ -70,23 +70,24 @@ note へ反映したら、`source_updated_at` を転載元の現在値に更新�
 note には CLI も公開 API もありません。**公開は必ずブラウザでの手作業**になります。
 
 1. `note/articles/<slug>.md` を用意する（転載なら Qiita 版から変換）
-2. note の新規記事エディタを開き、frontmatter を除いた本文を貼り付ける
-3. 画像をエディタから手動アップロードする
-4. 見出し・表・コードブロックの崩れをプレビューで確認する
-5. 公開し、採番された URL を `note_url` に、公開日を `published_at` に記録、`status: published` にする
-6. 親リポジトリで commit
+2. `check-article` の機械チェックを通す
+3. note の新規記事エディタを開き、frontmatter を除いた本文を貼り付ける
+4. 画像を `note/assets/<slug>/` からエディタへ手動アップロードする
+5. 見出し・表・コードブロックの崩れをプレビューで確認する
+6. 公開し、採番された URL を `note_url` に、公開日を `published_at` に記録、`status: published` にする
+7. 親リポジトリで commit
+
+Claude Code に任せる場合の詳細な段取りは `.claude/skills/publish-note-article/` にあります。
 
 Qiita と違い、**このリポジトリへの push では何も公開されません**。push はあくまで記録です。
 
-## 変換チェックリスト（Qiita → note）
+## 変換ルール（Qiita → note）
 
-note のエディタは Qiita ほど記法が豊富ではないため、そのまま貼ると崩れます。以下は貼り付け前に潰しておく箇所です。
+note のエディタは Qiita ほど記法が豊富ではないため、そのまま貼ると崩れます。何をどう直すかは
+**[`.claude/references/platform-differences.md`](../.claude/references/platform-differences.md) が単一の正**です。
+表・見出し・独自記法・画像パス・タグ数の5点が対象で、変換漏れは `check-article` の機械チェックで落ちます。
 
-- **表組み** — note は表に対応していません。箇条書きか画像に置き換えます
-- **見出しの階層** — note の見出しは 2 段階しかありません。Qiita の `###` 以下は文章の強調などに畳む必要があります
-- **Qiita 独自記法** — `:::note info` などのメッセージブロックは note では素通しされます。引用や強調に置き換えます
-- **画像** — Qiita 版は `https://raw.githubusercontent.com/shou-dev19/qiita-cli/main/images/...` を参照していますが、note ではエディタから手動アップロードした画像に差し替わります。ローカルの元ファイル (`qiita-cli/images/<slug>/`) をアップロードしてください
-- **記事間リンク** — Qiita 記事同士のリンクは、note 版が存在するならそちらへ張り替えます
-- **コードブロック** — note でも使えますが、言語シンタックスハイライトの挙動は Qiita と異なります
+以前はこのファイルにも同じチェックリストを置いていましたが、スキル側の記述と食い違ったため
+参照先を一本化しました。**このセクションに手順をコピーし直さないでください。**
 
-note の仕様は変わることがあります。初めての記事では、上記を鵜呑みにせず実際のエディタで確認してください。
+note の仕様は変わることがあります。差分に気づいたら、上記ファイルを更新してから先へ進んでください。

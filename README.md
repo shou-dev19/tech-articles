@@ -92,7 +92,7 @@ note には CLI も公開 API もないため、**公開は必ずブラウザで
 
 転載記事には frontmatter に `source`（転載元のパス）と `source_updated_at`（転載した時点の転載元の `updated_at`）を持たせます。Qiita 記事を再公開すると publish Action が転載元の `updated_at` を書き換えるため、この 2 つがずれていれば「note が古い」と機械的に判定できます。
 
-手順とチェックリストは [`note/README.md`](note/README.md)、Claude Code 向けの手順書は `.claude/skills/publish-note-article/` にあります。
+frontmatter の仕様は [`note/README.md`](note/README.md)、Qiita 版からの変換手順は [`.claude/references/platform-differences.md`](.claude/references/platform-differences.md)、Claude Code 向けの段取りは `.claude/skills/publish-note-article/` にあります。
 
 ## 反映漏れを防ぐ仕組み
 
@@ -141,9 +141,26 @@ git config --local diff.submodule log
 
 ### 3. スキル（`.claude/skills/`）
 
-| スキル | 内容 |
-|---|---|
-| `publish-qiita-article/` | Qiita 記事の作成から公開、公開後の frontmatter 取り込みまで |
-| `publish-note-article/` | note 記事の作成・転載、公開後の `note_url` / `source_updated_at` の記録まで |
+Claude Code が記事関連の作業をするときに読み込まれます。**記事のライフサイクルの段階で責務を分けて**あり、同じ知識が複数のスキルに書かれることがないようにしています。
 
-Claude Code が記事関連の作業をするときに読み込まれます。
+| スキル | 責務 | 扱わないこと |
+|---|---|---|
+| `write-tech-article/` | 記事の**中身**。企画・構成・文体・推敲。媒体非依存 | ファイル配置、公開手順 |
+| `generate-article-figures/` | 図版の**作画**。`> 🖼` 指示 → プロンプト → 画像 → 埋め込み | 表の画像化（転載作業の一部） |
+| `check-article/` | 出す直前の**検品**。機械チェック＋目視観点 | 直し方、出し方 |
+| `publish-qiita-article/` | Qiita へ出す**配管**。qiita-cli の器・サブモジュール同期・公開トリガ | 本文の書き方 |
+| `publish-note-article/` | note へ出す**配管**。人手公開の依頼・`note_url` / `source_updated_at` の記録 | 本文の書き方、記法変換の中身 |
+
+どのスキルの持ち物でもない共有知識は `.claude/references/` に置きます。
+
+| 参照 | 内容 |
+|---|---|
+| `.claude/references/platform-differences.md` | **Qiita / note の媒体差分と変換手順の単一の正。** 転載変換・検品・作画のどこからでもここを参照する |
+
+仕様の正がどこにあるかは以下のとおりです。**スキル側へコピーせず、参照させてください。**
+
+| 知識 | 正 |
+|---|---|
+| Qiita の frontmatter 契約・publish の失敗モード | `qiita-cli/CLAUDE.md` |
+| note の frontmatter 仕様 | `note/README.md` |
+| Qiita / note の記法差分・転載変換手順 | `.claude/references/platform-differences.md` |

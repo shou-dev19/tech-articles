@@ -116,27 +116,25 @@ python3 .claude/skills/generate-article-figures/scripts/figures.py check <slug>
 
 未置換ブロックの残り・URL の slug 不一致・実ファイル欠落・生成したのに参照されていない孤児を検出する。
 
-## 7. push 順序（事故が起きやすい）
+## 7. 画像を push する
 
-raw URL は**画像が main に乗るまで 404**。必ずこの順で行う。
+raw URL は**画像が main に乗るまで 404** なので、画像は記事の公開より先に push する。
 
 ```bash
-cd qiita-cli
-git add images/<slug> public/<slug>.md
-git commit -m "図版を追加: <slug>"
-git push          # ← ここで画像が raw から見えるようになる
+git -C qiita-cli add images/<slug>
+git -C qiita-cli commit -m "図版を追加: <slug>"
+git -C qiita-cli push          # ← ここで画像が raw から見えるようになる
 ```
 
-`qiita-cli` の main への push は Qiita 公開 Action のトリガでもある。**画像だけ先に push して表示確認 → そのあと記事の `private: false` を切る**のが最も安全。
+`qiita-cli` の main への push は Qiita 公開 Action のトリガでもある。
+**記事本文と一緒に push するときの順序**は `publish-qiita-article` の手順 4 が正。
 
 ## note 版への展開
 
-note はエディタからの手動アップロードなので、同じ画像を使う場合は `note/assets/<slug>/` へコピーしてから貼る。
+**このスキルは Qiita 側の画像しか作らない。** note 版への持ち込み（`note/assets/<slug>/` への
+コピーと相対パスへの差し替え）は転載作業の一部なので、`.claude/references/platform-differences.md`
+の「note 版への変換作業」に従うこと。ここには手順を再掲しない。
 
-```bash
-mkdir -p note/assets/<slug>
-cp qiita-cli/images/<slug>/*.png note/assets/<slug>/
-rm -f note/assets/<slug>/*.original.png
-```
-
-なお **note は Markdown の表を描画しない**。Qiita 版で表として書いた箇所は note 版では画像化が必要になる。これは図版ではなく表なので、このスキルではなく `check-article` の `references/platform-differences.md` を参照すること。
+なお **note は Markdown の表を描画しない**ため、Qiita 版で表として書いた箇所は note 版で画像化が必要になる。
+これは「図版」ではなく「表の画像化」で、`> 🖼` ブロックも `figures.json` も経由しない別作業。
+このスキルの守備範囲外なので、同じく上記の変換作業を参照すること。

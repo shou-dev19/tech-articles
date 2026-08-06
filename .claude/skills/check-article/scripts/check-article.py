@@ -95,7 +95,7 @@ def split_frontmatter(text: str) -> tuple[dict, int]:
             fm[key].append(line.strip()[2:].strip())
 
     # リスト形式のキーは、ブロック記法でも [a, b] 記法でも list に正規化する
-    for key in ("tags",):
+    for key in ("tags", "hashtags"):
         val = fm.get(key)
         if isinstance(val, str):
             inner = val.strip().strip("[]").strip()
@@ -271,9 +271,10 @@ def check_note(rep: Report, path: Path, fm: dict, lines: list[str], body_start: 
             elif f"/note/assets/{slug}/" not in str(local).replace("\\", "/"):
                 rep.warn(i + 1, f"note 画像は note/assets/{slug}/ に置く規約です: {url}")
 
-    tags = fm.get("tags")
+    # note 側のタグは frontmatter では hashtags。Qiita の tags と混同しないこと
+    tags = fm.get("hashtags")
     if isinstance(tags, list) and tags and not (8 <= len(tags) <= 10):
-        rep.warn(1, f"タグが {len(tags)} 個です（note は8〜10個が適正）")
+        rep.warn(1, f"hashtags が {len(tags)} 個です（note は8〜10個が適正）")
 
 
 # ─── main ───────────────────────────────────────────────────────────────────

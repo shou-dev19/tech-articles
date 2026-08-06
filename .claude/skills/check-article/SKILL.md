@@ -7,7 +7,13 @@ description: Qiita / note 記事の公開前検品スキル。frontmatter・図�
 
 公開してから直すのが一番高くつくので、push / 貼り付けの直前に必ず通す。
 
-**このスキルの守備範囲は「本文とその周辺ファイル」だけ。** サブモジュールの同期漏れと note の陳腐化は `.claude/hooks/check-submodule-sync.sh` / `check-note-staleness.sh` が見ているので、ここでは扱わない。
+**このスキルの守備範囲は「本文とその周辺ファイルが出せる状態か」の判定だけ。**
+
+- 直し方（記法変換の手順）は `.claude/references/platform-differences.md`
+- 出し方（push 順序・公開トリガ）は `publish-qiita-article` / `publish-note-article`
+- サブモジュール同期と note の陳腐化は `.claude/hooks/*.sh`
+
+ここで診断し、直しと公開は各スキルへ渡す。
 
 ## 1. 機械チェック
 
@@ -43,6 +49,10 @@ python3 .claude/skills/check-article/scripts/check-article.py qiita-cli/public/*
 - 本文中の h1（タイトルはエディタ側の入力）
 - `source` があるのに `source_updated_at` がない
 - 画像が `note/assets/<slug>/` にあり、実体が存在すること
+- `hashtags` の個数（8〜10個が適正 → 外れれば WARN）
+
+**note の ERROR / WARN はすべて `.claude/references/platform-differences.md` の
+「note 版への変換作業」に対応している。** 落ちたらその節へ戻ること。
 
 ## 2. 目視で確認する（機械では拾えない）
 
@@ -71,20 +81,11 @@ python3 .claude/skills/check-article/scripts/check-article.py qiita-cli/public/*
 - 外部リンクが生きているか（機械チェックはネットワークを叩かない）
 - 自分の過去記事へのリンクが、公開済みの URL を指しているか
 
-## 3. 媒体差分
+## 3. 検品を通したあと
 
-Qiita 版から note 版を作るときの罠は `references/platform-differences.md` にまとめてある。**転載作業のときは必ず開く。**
+ERROR 0 になったら、そのまま公開スキルへ渡す。
 
-最頻出の事故は「表がそのままパイプ記号で表示される」。note は Markdown の表を描画しない。
-
-## 4. 公開順序
-
-Qiita は `qiita-cli` の main への push が公開トリガなので、**push 前が最後の砦**。
-
-```bash
-python3 .claude/skills/check-article/scripts/check-article.py qiita-cli/public/<slug>.md
-# ERROR 0 を確認してから
-cd qiita-cli && git push
-```
-
-画像を含む記事は、**画像だけ先に push して raw URL の表示を確認してから** `private: false` を切る。raw URL は main に乗るまで 404 になる。
+| 媒体 | 次に読むもの |
+|---|---|
+| Qiita | `publish-qiita-article`（push が公開トリガ。画像の push 順序に注意） |
+| note | `publish-note-article`（公開は人間の手作業。URL を受け取って記録するまでが1セット） |
