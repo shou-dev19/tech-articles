@@ -1,1 +1,3 @@
 .env
+qiita-cli/images/**/*.original.png
+qiita-cli/images/**/generate.log
