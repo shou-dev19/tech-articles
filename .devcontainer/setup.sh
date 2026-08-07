@@ -75,7 +75,41 @@ else
 fi
 
 # ---------------------------------------------------------
-# 5. シェルエイリアスの設定
+# 5. Node のバージョン調整
+# ベースイメージ (typescript-node:1-22-bookworm) の Node は 22.16.0 だが、
+# @qiita/qiita-cli 1.10.0 は engines: node >=22.22.1 を要求するため入れ直す。
+# NVM_SYMLINK_CURRENT=true かつ PATH が nvm の current/bin を
+# /usr/local/bin より先に見るので、alias default を張れば以降のシェルにも効く。
+# このスクリプト自体は非対話 bash なので /etc/bash.bashrc は読まれない。
+# nvm.sh を明示的に source する必要がある。
+# ---------------------------------------------------------
+NODE_VERSION_REQUIRED="22.22.1"
+echo "Ensuring Node ${NODE_VERSION_REQUIRED}..."
+export NVM_DIR="${NVM_DIR:-/usr/local/share/nvm}"
+# nvm.sh とその配下のコマンドは set -e 下で非ゼロを返すことがあるため一時的に外す
+set +e
+. "$NVM_DIR/nvm.sh"
+nvm install "$NODE_VERSION_REQUIRED"
+nvm alias default "$NODE_VERSION_REQUIRED"
+nvm use "$NODE_VERSION_REQUIRED"
+set -e
+echo "Node version is now: $(node -v)"
+
+# ---------------------------------------------------------
+# 6. Qiita CLI の依存関係インストール
+# node_modules は gitignore されているので、コンテナ再作成のたびに
+# 入れ直さないと `npx qiita preview` が使えない。
+# lockfile がある場合は npm ci で固定バージョンを再現する。
+# ---------------------------------------------------------
+echo "Installing Qiita CLI dependencies..."
+if [ -f /workspaces/tech-articles/qiita-cli/package-lock.json ]; then
+    npm --prefix /workspaces/tech-articles/qiita-cli ci
+else
+    npm --prefix /workspaces/tech-articles/qiita-cli install
+fi
+
+# ---------------------------------------------------------
+# 7. シェルエイリアスの設定
 # ---------------------------------------------------------
 echo "alias agyyolo='agy --dangerously-skip-permissions'" >> /home/node/.bashrc
 source ~/.bashrc

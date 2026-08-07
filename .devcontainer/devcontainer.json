@@ -1,6 +1,7 @@
 {
   "name": "AI Agent Workspace (Node.js/TS)",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm",
+  // Node 22 系。@qiita/qiita-cli 1.10.0 が engines: node >=22.22.1 を要求するため 20 から更新
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-22-bookworm",
   // 認証情報を含む設定ファイル (.claude.json) をボリューム内に置き、リビルド後も認証を維持する
   "containerEnv": {
     "CLAUDE_CONFIG_DIR": "/home/node/.claude"
