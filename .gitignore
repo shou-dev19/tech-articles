@@ -1,3 +1,4 @@
 .env
+__pycache__/
 qiita-cli/images/**/*.original.png
 qiita-cli/images/**/generate.log

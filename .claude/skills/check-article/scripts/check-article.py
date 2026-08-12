@@ -185,6 +185,19 @@ def check_qiita(rep: Report, path: Path, fm: dict, lines: list[str], mask: list[
     if str(fm.get("private", "")).strip() == "false":
         rep.warn(1, "private: false です。push すると即公開されます")
 
+    # note 版が公開済みなら、転載であることを Qiita 側にも書いておく
+    note_path = REPO_ROOT / "note" / "articles" / f"{slug}.md"
+    if note_path.is_file():
+        note_fm, _ = split_frontmatter(note_path.read_text(encoding="utf-8"))
+        if note_fm.get("note_url", "").strip() and not any(
+            "note.com/" in l for i, l in enumerate(lines) if not mask[i]
+        ):
+            rep.warn(
+                1,
+                "note 版が公開済み (note_url あり) なのに本文に note へのリンクがありません。"
+                "publish-note-article の crosslink.py で入れてください",
+            )
+
     # :::note 系ディレクティブの閉じ忘れ
     depth = 0
     for i, line in enumerate(lines):
@@ -227,6 +240,14 @@ def check_note(rep: Report, path: Path, fm: dict, lines: list[str], body_start: 
 
     if "source" in fm and "source_updated_at" not in fm:
         rep.error(1, "source があるのに source_updated_at がありません")
+
+    # 転載なら、無断転載に見えないよう原典へのリンクを本文に置く
+    if fm.get("source") and not any("qiita.com/" in l for i, l in enumerate(lines) if not mask[i]):
+        rep.warn(
+            1,
+            "転載記事 (source あり) なのに本文に Qiita の原文へのリンクがありません。"
+            "publish-note-article の crosslink.py で入れてください",
+        )
 
     # note.com へ貼り付けたことの記録。無いと「直したが貼っていない」を検出できない
     if fm.get("status") == "published" and not fm.get("note_body_sha"):

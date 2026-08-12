@@ -92,8 +92,8 @@ $S update note/articles/<slug>.md   # 貼り付け終わった、として記録
 
 note には CLI も公開 API もありません。**公開は必ずブラウザでの手作業**になります。
 
-1. `note/articles/<slug>.md` を用意する（転載なら Qiita 版から変換）
-2. `check-article` の機械チェックを通す
+1. `note/articles/<slug>.md` を用意する（転載なら `to-note.py <slug>` で一次変換）
+2. `crosslink.py <slug>` で相互リンクを入れ、`check-article` の機械チェックを通す
 3. note の新規記事エディタを開き、frontmatter を除いた本文を貼り付ける
 4. 画像を `note/assets/<slug>/` からエディタへ手動アップロードする
 5. 見出し・表・コードブロックの崩れをプレビューで確認する
@@ -112,6 +112,13 @@ Qiita と違い、**このリポジトリへの push では何も公開されま
 note のエディタは Qiita ほど記法が豊富ではないため、そのまま貼ると崩れます。何をどう直すかは
 **[`.claude/references/platform-differences.md`](../.claude/references/platform-differences.md) が単一の正**です。
 表・見出し・独自記法・画像パス・タグ数の5点が対象で、変換漏れは `check-article` の機械チェックで落ちます。
+
+見出し・独自記法・画像パスの変換は `to-note.py` が自動で行います。表とタグ数は
+判断が要るので自動化しておらず、変換後にレポートとして列挙されます。
+
+```bash
+python3 .claude/skills/publish-note-article/scripts/to-note.py <slug>
+```
 
 以前はこのファイルにも同じチェックリストを置いていましたが、スキル側の記述と食い違ったため
 参照先を一本化しました。**このセクションに手順をコピーし直さないでください。**

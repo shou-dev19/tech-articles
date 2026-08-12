@@ -20,6 +20,16 @@ note には **CLI も公開 API もない**。Qiita と違い、このリポジ�
 
 **エージェントが note へ公開することはできない。** 手順 4 は必ずユーザに依頼すること。
 
+## スクリプト
+
+`scripts/` に3つある。いずれもリポジトリルートから実行する。
+
+| スクリプト | 何をするか |
+|---|---|
+| `to-note.py <slug>` | Qiita 版から note 版の下書きを作る（手順 2）。判断が要る箇所はレポートに残す |
+| `crosslink.py <slug>` | 相互リンクを両媒体へ入れる／更新する。`--dry-run` あり |
+| `note-sha.sh update <file>` | note.com へ貼り終えたことを `note_body_sha` に記録する（手順 5） |
+
 ## 原稿の正はどこか
 
 転載記事の正は **`qiita-cli/public/<slug>.md`**（サブモジュール側）。
@@ -45,13 +55,20 @@ Qiita 側をこれから公開するところなら、先に `publish-qiita-arti
 
 ### 2. note 版を作る
 
-`note/TEMPLATE.md` を `note/articles/<slug>.md` へコピーして書き始める。
-`<slug>` は転載元の Qiita basename と揃える（対応関係が目で追えるようにするため）。
+転載なら一次変換をかける。frontmatter の生成、独自記法・見出し・画像パスの変換、
+画像の複製までが済み、判断が要る箇所だけがレポートに残る。
 
-- frontmatter を埋める → フィールドの意味は `note/README.md`
-- `source_updated_at` には転載元の `updated_at` を**そのままコピー**する
-- 本文を note の記法制約へ落とす → **手順は `.claude/references/platform-differences.md`
-  の「note 版への変換作業」に従う**。表・見出し・独自記法・画像パスの4点が事故りやすい
+```bash
+python3 .claude/skills/publish-note-article/scripts/to-note.py <slug>
+```
+
+`<slug>` は転載元の Qiita basename と揃える（対応関係が目で追えるようにするため）。
+レポートに出た項目——**表の画像化、記事間リンクの張り替え、hashtags を8〜10個へ、
+アイキャッチの扱い**——を上から潰す。変換規則の詳細は
+`.claude/references/platform-differences.md` が正。
+
+note にしか出さないオリジナル記事には転載元がないので、`note/TEMPLATE.md` を
+`note/articles/<slug>.md` へコピーして手で書き始める。
 
 ### 3. 検品を通す
 
@@ -142,14 +159,24 @@ note 向けの導入の書き換え、転載告知、note 側の記事間リン�
 
 ### 相互リンクを入れるときの副作用
 
-note 公開後に Qiita 版へ note へのリンクを足す場合、**Qiita 側の編集が
-`updated_at` を動かす**ため、note 本文を何も変えていなくても
-「note が転載元より古い」と警告が出る。順序はこうする。
+相互リンクそのものは `crosslink.py` が入れる。
+
+```bash
+python3 .claude/skills/publish-note-article/scripts/crosslink.py <slug>
+```
+
+note 版の冒頭・末尾と、Qiita 版の末尾へ定型ブロックを置く。URL は
+転載元の `id` と note 側の `note_url` から、初出日は git 履歴から取る。
+再実行しても書き足した文章は壊れず、日付と URL だけが現在値へ揃う。
+入れ忘れは `check-article` が WARN で拾う。
+
+問題は順序のほうで、**Qiita 側の編集が `updated_at` を動かす**ため、
+note 本文を何も変えていなくても「note が転載元より古い」と警告が出る。
 
 1. note で公開 → URL を受け取る → `note_url` / `published_at` / `status` を記録
-2. `note-sha.sh update` で `note_body_sha` を記録
-3. Qiita 版に note へのリンクを追記 → push → publish 完了を待つ
-4. `git -C qiita-cli pull`
+2. `crosslink.py <slug>` を実行する（note 版・Qiita 版の両方が書き換わる）
+3. note 版の変更を note.com へ反映してもらい、`note-sha.sh update` を実行
+4. Qiita 版を push → publish 完了を待つ → `git -C qiita-cli pull`
 5. `source_updated_at` を転載元の新しい `updated_at` へ書き換える（note 本文は触らない）
 
 5 は「note 側に取り込むべき実質的な変更がない」と判断して記録だけ合わせる操作。
