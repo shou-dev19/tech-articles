@@ -1,6 +1,6 @@
 ---
 name: publish-note-article
-description: 記事を note (note.com) へ出すときの配管手順。Qiita 版から note 版への転載、公開をユーザに依頼する段取り、公開後の note_url / published_at / source_updated_at の記録、転載元が更新されたときの追従を扱う。「note に転載する」「note に上げる」「note 記事を更新する」「note が古いと警告が出た」などのときに読むこと。本文の書き方は扱わない（write-tech-article の担当）、記法変換の中身も扱わない（.claude/references/platform-differences.md が正）。
+description: 記事を note (note.com) へ出すときの配管手順。Qiita 版から note 版への転載、公開をユーザに依頼する段取り、公開後の note_url / published_at / source_updated_at / note_body_sha の記録、転載元が更新されたときの追従、公開後に note 版だけへ加筆するときの段取りを扱う。「note に転載する」「note に上げる」「note 記事を更新する」「note が古いと警告が出た」「note.com へ未反映と警告が出た」などのときに読むこと。本文の書き方は扱わない（write-tech-article の担当）、記法変換の中身も扱わない（.claude/references/platform-differences.md が正）。
 ---
 
 # note への公開フロー
@@ -84,6 +84,15 @@ status: published
 `source_updated_at` が転載元の現在の `updated_at` と一致していることをここで確認する。
 手順 1 の pull から時間が経って再公開が挟まっていると、ずれていることがある。
 
+続けて、貼り付けた本文のハッシュを記録する。
+
+```bash
+.claude/skills/publish-note-article/scripts/note-sha.sh update note/articles/<slug>.md
+```
+
+これは「note.com へ貼り終えた」という宣言。**貼る前に実行しないこと。**
+意味と検知の仕組みは `note/README.md` の「`note_body_sha` はもう一つの軸」が正。
+
 ### 6. 親リポジトリで commit
 
 ```bash
@@ -98,24 +107,61 @@ note ディレクトリは親リポジトリの通常のディレクトリなの
 
 ## 既存記事を更新するとき
 
-Qiita 側を直して再公開したら、note 側は**放っておくと古いまま残る**。
-`.claude/hooks/check-note-staleness.sh` が `source_updated_at` と転載元の
-`updated_at` を突き合わせて警告する。
+公開済みの記事に手を入れる経路は 2 つあり、**順序が逆になる**。
+どちらの経路でも、note.com を直せるのはユーザだけで、リポジトリの編集は
+「note.com がこうなっているはず」という記録を更新しているにすぎない。
 
-警告が出たら:
+### 経路A：Qiita 起点（転載元を直した）
+
+Qiita 側を直して再公開したら、note 側は**放っておくと古いまま残る**。
+`check-note-staleness.sh` が `source_updated_at` と転載元の `updated_at` を
+突き合わせて警告する。
 
 1. 転載元の変更内容を確認する（`git -C qiita-cli log -p -- public/<slug>.md`）
 2. `note/articles/<slug>.md` に同じ変更を反映する（変換規則は手順 2 と同じ）
-3. ユーザに note 上での編集を依頼する
-4. `source_updated_at` を転載元の現在値に書き換える
+3. ユーザに note.com 上での編集を依頼する
+4. `git -C qiita-cli pull` してから `source_updated_at` を転載元の現在値に書き換える
+5. `note-sha.sh update` で `note_body_sha` を更新する
 
-**4 を忘れると警告が消えない。** 逆に、note を直さずに 4 だけやると
-検知が効かなくなるので、実際に反映してから書き換えること。
+**4 と 5 の両方が要る。** 4 だけだと「Qiita には追いついたが note.com には貼っていない」
+状態が残り、しかも警告は消えてしまう。
+
+### 経路B：note 起点（note 版だけに加筆した）
+
+note 向けの導入の書き換え、転載告知、note 側の記事間リンクなど、**Qiita 版には
+入れない変更**。転載元は動かないので `source_updated_at` は関係なく、
+`note_body_sha` のずれだけが手がかりになる。
+
+1. `note/articles/<slug>.md` を直す
+2. `check-article` を通す
+3. **ユーザに差分を渡して note.com 上での編集を依頼する**（`git diff note/` を見せる）
+4. 反映されたら `note-sha.sh update` で `note_body_sha` を更新する
+
+3 を飛ばして 4 をやると、リポジトリと note.com が食い違ったまま検知も効かなくなる。
+ここが一番静かに壊れるところ。
+
+### 相互リンクを入れるときの副作用
+
+note 公開後に Qiita 版へ note へのリンクを足す場合、**Qiita 側の編集が
+`updated_at` を動かす**ため、note 本文を何も変えていなくても
+「note が転載元より古い」と警告が出る。順序はこうする。
+
+1. note で公開 → URL を受け取る → `note_url` / `published_at` / `status` を記録
+2. `note-sha.sh update` で `note_body_sha` を記録
+3. Qiita 版に note へのリンクを追記 → push → publish 完了を待つ
+4. `git -C qiita-cli pull`
+5. `source_updated_at` を転載元の新しい `updated_at` へ書き換える（note 本文は触らない）
+
+5 は「note 側に取り込むべき実質的な変更がない」と判断して記録だけ合わせる操作。
+**転載元の差分が相互リンクの追記だけであることを確認してから**行うこと。
 
 ## 状態の確認
 
 ```bash
 .claude/hooks/check-note-staleness.sh --always   # 問題がなければ無出力
+
+# 現在の本文のハッシュ（frontmatter の note_body_sha と一致していれば note.com と同じ）
+.claude/skills/publish-note-article/scripts/note-sha.sh print note/articles/<slug>.md
 
 # note 記事の一覧と公開状態
 grep -l . note/articles/*.md | xargs -I{} sh -c 'echo "== {}"; sed -n "/^---$/,/^---$/p" {}'
@@ -128,5 +174,7 @@ grep -l . note/articles/*.md | xargs -I{} sh -c 'echo "== {}"; sed -n "/^---$/,/
 - **frontmatter ごと本文をユーザに渡す** — そのまま貼られて note 上に露出する。
 - **転載元を pull せずに `source_updated_at` を書く** — 古い値が焼き付き、誤検知が続く。
 - **note を直さずに `source_updated_at` だけ更新する** — 鮮度検知が無意味になる。
+- **note.com へ貼らずに `note-sha.sh update` を実行する** — 同上。リポジトリと
+  note.com が食い違ったまま、警告だけが消える。ユーザから反映済みの確認を得てから実行する。
 - **`note_url` を手で組み立てる** — note の記事 ID は公開時にサーバが採番する。
   ユーザから実際の URL を受け取ること。

@@ -38,6 +38,7 @@ source: qiita-cli/public/ai-driven-development-glossary-1.md
 source_updated_at: '2026-08-04T18:31:30+09:00'
 note_url: https://note.com/xxxx/n/nXXXXXXXXXXX
 published_at: '2026-08-05'
+note_body_sha: 0449ed3eae58df85
 status: published
 hashtags: [AI駆動開発, ClaudeCode]
 ---
@@ -50,6 +51,7 @@ hashtags: [AI駆動開発, ClaudeCode]
 | `source_updated_at` | 転載時 | **転載した時点の転載元の `updated_at` をそのままコピーする。** 追従漏れの検知に使う（後述） |
 | `note_url` | 公開後 | note が採番した URL。公開するまでは空 |
 | `published_at` | 公開後 | 公開日 |
+| `note_body_sha` | 公開後 | **note.com へ最後に貼り付けた時点の本文のハッシュ。** 貼り付け漏れの検知に使う（後述）。手で書かず `note-sha.sh update` で入れる |
 | `status` | ○ | `draft` / `published` |
 | `hashtags` | | note のハッシュタグ。**8〜10個が適正**（Qiita の `tags` とはキー名も上限も別） |
 
@@ -65,6 +67,27 @@ Qiita 記事を修正して再公開すると、publish Action が `qiita-cli/pu
 
 note へ反映したら、`source_updated_at` を転載元の現在値に更新してください。これを忘れると警告が消えません。
 
+### `note_body_sha` はもう一つの軸
+
+`source_updated_at` が見ているのは **Qiita → note** の追従漏れだけです。これだけだと、次の状態が完全に見えません。
+
+> `note/articles/<slug>.md` を直したが、note.com にはまだ貼り直していない
+
+むしろ `source_updated_at` を合わせた瞬間に警告が消えるので、**リポジトリだけ新しく、公開されている記事は古いまま**という状態が残ります。note に API がない以上、リポジトリの内容は「note.com がこうなっているはず」という記録でしかなく、両者の一致は誰も保証してくれません。
+
+そこで、note.com へ貼り付けた時点の本文のハッシュを `note_body_sha` に残し、現在の本文と突き合わせます。
+
+```bash
+S=.claude/skills/publish-note-article/scripts/note-sha.sh
+
+$S print  note/articles/<slug>.md   # 現在の本文のハッシュを見る
+$S update note/articles/<slug>.md   # 貼り付け終わった、として記録を更新する
+```
+
+`update` は「note.com へ貼り終えた」という宣言です。**貼る前に実行しないでください。** 貼らずに記録だけ更新すると検知が無意味になります（`source_updated_at` と同じ性質の落とし穴です）。
+
+計算対象は frontmatter を除いた本文で、改行コードと前後の空行の差は吸収されます。ハッシュの定義は `note-sha.sh` が単一の正で、`check-note-staleness.sh` もこのスクリプトを呼びます。
+
 ## 公開フロー
 
 note には CLI も公開 API もありません。**公開は必ずブラウザでの手作業**になります。
@@ -75,7 +98,10 @@ note には CLI も公開 API もありません。**公開は必ずブラウザ
 4. 画像を `note/assets/<slug>/` からエディタへ手動アップロードする
 5. 見出し・表・コードブロックの崩れをプレビューで確認する
 6. 公開し、採番された URL を `note_url` に、公開日を `published_at` に記録、`status: published` にする
-7. 親リポジトリで commit
+7. `note-sha.sh update note/articles/<slug>.md` で `note_body_sha` を記録する
+8. 親リポジトリで commit
+
+公開後に本文を直すときも、**note.com のエディタで直してから 7 をやり直す**のが常に一組です。
 
 Claude Code に任せる場合の詳細な段取りは `.claude/skills/publish-note-article/` にあります。
 

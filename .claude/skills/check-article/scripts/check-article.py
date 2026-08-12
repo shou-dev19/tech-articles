@@ -228,6 +228,14 @@ def check_note(rep: Report, path: Path, fm: dict, lines: list[str], body_start: 
     if "source" in fm and "source_updated_at" not in fm:
         rep.error(1, "source があるのに source_updated_at がありません")
 
+    # note.com へ貼り付けたことの記録。無いと「直したが貼っていない」を検出できない
+    if fm.get("status") == "published" and not fm.get("note_body_sha"):
+        rep.warn(
+            1,
+            "status: published なのに note_body_sha がありません。note.com へ貼り付け済みなら "
+            "publish-note-article の note-sha.sh update で記録してください",
+        )
+
     # note は Markdown の表を描画しない（そのまま文字として出る）
     run_start = None
     for i, line in enumerate(lines + [""]):
