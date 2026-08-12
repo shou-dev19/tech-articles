@@ -2,3 +2,5 @@
 __pycache__/
 qiita-cli/images/**/*.original.png
 qiita-cli/images/**/generate.log
+# playwright-cli の実行時出力 (snapshot / trace / video)
+.playwright-cli/

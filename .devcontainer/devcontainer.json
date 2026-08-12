@@ -36,6 +36,13 @@
       "source": "ai-dev-gcloud-config",
       "target": "/home/node/.config/gcloud",
       "type": "volume"
+    },
+    {
+      // Playwright のブラウザ本体 (chromium 一式で 500MB 超)。
+      // ボリュームに置いてリビルド時の再ダウンロードを避ける
+      "source": "ai-dev-playwright-browsers",
+      "target": "/home/node/.cache/ms-playwright",
+      "type": "volume"
     }
   ],
   // Docker起動時に .env ファイルを読み込ませる設定（.envが存在しない場合があるためデフォルトはコメントアウト）

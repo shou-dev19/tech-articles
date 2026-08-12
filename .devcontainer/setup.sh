@@ -9,13 +9,19 @@ echo "Starting Dev Container setup..."
 # root 所有になることがあるため、ここで node に変更します
 # ---------------------------------------------------------
 echo "Fixing volume permissions..."
-sudo chown -R node:node /home/node/.gemini
-sudo chown -R node:node /home/node/.claude
-sudo chown -R node:node /home/node/.codex
-sudo mkdir -p /home/node/.config/gh
-sudo chown -R node:node /home/node/.config/gh
-sudo mkdir -p /home/node/.config/gcloud
-sudo chown -R node:node /home/node/.config/gcloud
+
+# 事前に必要なディレクトリを作成
+sudo mkdir -p /home/node/.config/gh \
+              /home/node/.config/gcloud \
+              /home/node/.cache/ms-playwright \
+              /home/node/.cache/antigravity
+
+# マウント対象およびホームディレクトリ配下の所有権を node ユーザーに一元変更
+sudo chown -R node:node /home/node/.gemini \
+                        /home/node/.claude \
+                        /home/node/.codex \
+                        /home/node/.config \
+                        /home/node/.cache
 
 sudo apt-get update
 
@@ -109,7 +115,33 @@ else
 fi
 
 # ---------------------------------------------------------
-# 7. シェルエイリアスの設定
+# 7. Playwright CLI のインストール
+# グローバル npm パッケージは nvm の node バージョン配下に入るため、
+# 5. の nvm use より後で実行する必要がある。
+#
+# 記事のスクリーンショット取得などブラウザ操作に使う。
+# .claude/skills/playwright-cli/ と .playwright/cli.config.json は
+# リポジトリにコミット済みなので、ここで install --skills は実行しない
+# （実行すると skill 側の差分が出る。更新したいときだけ手で叩く）。
+# ---------------------------------------------------------
+echo "Installing Playwright CLI..."
+npm install -g @playwright/cli@latest
+
+# ヘッドレスブラウザの実行に必要な OS ライブラリ (apt)。
+# @playwright/cli は playwright 本体を同梱しているので、
+# バージョン差を避けるため同梱の CLI から install-deps を呼ぶ。
+# 内部で sudo apt-get install するため対話なしで通る必要がある。
+echo "Installing Playwright OS dependencies..."
+node "$(npm root -g)/@playwright/cli/node_modules/playwright-core/cli.js" install-deps chromium
+
+# ブラウザ本体。cli.config.json が channel: chromium を指定しているため
+# Google Chrome ではなく Playwright 同梱の chromium を入れる。
+# 既に同じリビジョンがあればスキップされる（ボリューム化の効果はここ）。
+echo "Installing Playwright browser (chromium)..."
+playwright-cli install-browser chromium
+
+# ---------------------------------------------------------
+# 8. シェルエイリアスの設定
 # ---------------------------------------------------------
 echo "alias agyyolo='agy --dangerously-skip-permissions'" >> /home/node/.bashrc
 source ~/.bashrc
